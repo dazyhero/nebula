@@ -104,7 +104,7 @@ Content-Type: application/json
 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone git@github.com:dazyhero/nebula.git
 cd nebula
 ```
 
@@ -123,7 +123,7 @@ pnpm install
 4. Migrate the database
 
 ```bash
-pnpm db:migrate
+pnpm db:push
 ```
 
 5. To view logs:

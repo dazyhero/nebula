@@ -1,0 +1,76 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - GOOGLE_SERVICE_ACCOUNT_PATH=./google-service-account.json
+      - GOOGLE_SCOPES=https://www.googleapis.com/auth/drive.file
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/fileupload
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 500M
+
+  file-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ['node', 'dist/src/file-processor/main']
+    environment:
+      - NODE_ENV=production
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - GOOGLE_SERVICE_ACCOUNT_PATH=./google-service-account.json
+      - GOOGLE_SCOPES=https://www.googleapis.com/auth/drive.file
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/fileupload
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 500M
+
+  rabbitmq:
+    image: rabbitmq:3-alpine
+    ports:
+      - '5672:5672'
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'check_port_connectivity']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.30'
+          memory: 300M
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fileupload
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  rabbitmq_data:
+  postgres_data:
